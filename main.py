@@ -8,6 +8,7 @@ import numpy as np
 
 import openmc
 from neorl import JAYA
+from datetime import datetime
 from neorl import PPO2
 from neorl import MlpPolicy
 from neorl import RLLogger
@@ -19,14 +20,14 @@ from pathlib import Path
 opt_algorithm = 'JAYA'  # JAYA/PPO-ES
 ncores = 1 # parallel computing number
 verbose = True
-ngen = 100
+ngen = 200
 seed= 100
 
 start = time.time()
 cur_path = os.getcwd()
 print('Current working path:', cur_path)
-logger_path = os.path.join(f'{cur_path}/logs', f'my_history_{opt_algorithm}.txt')
-
+logger_path = os.path.join(f'{cur_path}/logs', f'my_history_{opt_algorithm}_{datetime.now().strftime("%d_%m_%Y")}.txt')
+print('loger path=', logger_path)
 ## Configure enviromental variable here ##
 os.environ['OPENMC_CROSS_SECTIONS'] = '/tmp/endfb-vii.1-hdf5/cross_sections.xml'
 
@@ -34,10 +35,11 @@ my_limit = 0.1685 # north south limit
 mesh_parameter_x = 20
 mesh_parameter_y = 7
 U_density, water_2_density = 19, 1
-lb = [0.1, 0.001]  # [0.3, 0.1]
-ub = [19, 30]  # [19.0, 20]
+lb = [0.1, 0.001]  # minimal value of uranium and water density respectively
+ub = [19, 30]      # maximal value of uranium and water density respectively
 d2type = ['float', 'float']
 nx = 2
+
 
 def create_bounds(lb, ub, d2type, nx):
     bounds = {}
@@ -45,8 +47,10 @@ def create_bounds(lb, ub, d2type, nx):
         bounds['x' + str(i + 1)] = [d2type[i], lb[i], ub[i]]
     return bounds
 
+
 def remove_directory(path):
     os.system(f'rm -r "{path}" && rmdir "{path}"')
+
 
 # Check if the file exists
 if os.path.exists(logger_path):
@@ -56,9 +60,11 @@ if os.path.exists(logger_path):
 else:
     print(f"The file {logger_path} does not exist.")
 
+
 def writing_function(content):
     with open(logger_path, 'a+') as file:
         file.write(f'-{str(content)}\n')
+
 
 def init_model(U_density, water_2_density):
     model = openmc.model.Model()
@@ -83,12 +89,6 @@ def init_model(U_density, water_2_density):
     meat101.add_nuclide('U235', 1.658E-03)
     meat101.add_nuclide('U238', 1.248E-04)
     meat101.set_density('g/cm3', U_density)
-
-    water = openmc.Material(material_id=22, name='Water at 300 K')
-    water.set_density('g/cm3', 0.1)
-    water.add_nuclide('O16', 1.0)
-    water.add_nuclide('H1', 2.0)
-    water.add_s_alpha_beta('c_H_in_H2O') #I added this 18.12.23
 
     aluminum_ag3= openmc.Material(material_id=23, name='name_Aluminum_AG3')
     aluminum_ag3.add_nuclide('Al27',5.8273E-02)
@@ -116,7 +116,7 @@ def init_model(U_density, water_2_density):
     Cadnium.add_element('Cd', 1.0)
 
     # Define the materials file.
-    model.materials = (meat101, aluminum_ag3, aluminum_a5, water, Cadnium, water_2)
+    model.materials = (meat101, aluminum_ag3, aluminum_a5, Cadnium, water_2)
 
     # Instantiate Surfaces
     meat_north = openmc.YPlane(y0=0.0255, name='meat north side')
@@ -193,6 +193,7 @@ def init_model(U_density, water_2_density):
     return model, meat101, water_2
 
 
+#updating the model
 def update_one_plate(U_density, water_2_density, meat101, water_2):
     meat101.set_density('g/cm3', U_density)
     water_2.set_density('g/cm3', water_2_density)
@@ -207,6 +208,7 @@ def update_one_plate(U_density, water_2_density, meat101, water_2):
     model.geometry.root_universe.cells[705].fill = water_2
     ##################
 
+
 # call NEORL to find the optimal enrichment ##
 # Define the fitness function
 def FIT(x):
@@ -214,7 +216,7 @@ def FIT(x):
     print("x[1]: ", '%12.0f' % x[1])
     # create a subfold for parallel computing
     randnum = random.randint(0,1e8) # create a random number
-    pathname = os.path.join(cur_path, 'PPoES_subfold_11_'+str(randnum)) # create subfold
+    pathname = os.path.join(cur_path, 'subfold_'+str(randnum)) # create subfold
     os.makedirs(pathname, exist_ok=True)
     os.chdir(pathname) # change working dir into the subfold
 
@@ -242,7 +244,7 @@ def FIT(x):
     k_combined = sp.k_combined # the combined k-eff
     k_combined_nom = k_combined.nominal_value # the nominal value of k-eff
     k_combined_stddev = k_combined.std_dev # the standard deviation of k-eff
-    return_val =  (1+10*abs(k_combined_nom - 1))/(flux.mean[0, 0, 0]+0.000001)
+    return_val =  (1 + abs(k_combined_nom - 1)) / (flux.mean[0, 0, 1] + 1)
     writing_function([x[0], x[1], my_thermal_flux_sum[0],  my_fast_flux_sum[0], k_combined_nom, return_val])  #TODO: Write to txt file only in the end
     return return_val
 
@@ -270,7 +272,7 @@ if opt_algorithm=='PPO-ES':
                           fit=FIT,ncores=ncores,
                           bounds=BOUNDS,
                           mode='min',
-                          episode_length=50)
+                          episode_length=20)
 
     #change hyperparameters of PPO/ES if you like (defaults should be good to start with)
     h={'cxpb': 0.8,'mutpb': 0.2,'n_steps': 24,'lam': 1.0}
@@ -286,7 +288,7 @@ if opt_algorithm=='PPO-ES':
                 hyperparam=h,
                 seed=seed)
     #first run RL for some timesteps
-    rl=ppoes.learn(total_timesteps=3000, verbose=verbose)
+    rl=ppoes.learn(total_timesteps=40, verbose=verbose)
     #second run ES, which will use RL data for guidance
     ppoes_x, ppoes_y, ppoes_hist=ppoes.evolute(ngen=ngen, ncores=ncores, verbose=verbose)
     print('---PPO-ES Results---', )
