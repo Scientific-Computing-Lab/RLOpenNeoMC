@@ -11,7 +11,7 @@ Therefore, reinforce algorithm are more adapted in this case.
 ![](images/opt_flow.PNG)
  
 # Instructions
-## Requirments
+## Requirements
 First, clone the RLOpenNeoMC code provided here.
 ```
 clone https://github.com/Scientific-Computing-Lab-NRCN/RLOpenNeoMC.git
