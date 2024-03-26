@@ -29,7 +29,7 @@ Then, install OpenMC using this [OpenMC installation](https://docs.openmc.org/en
 
 ## Citation
 For more information about the measures and their means of the implementations, please refer to the paper.
-If you found these codes useful for your research, please consider citing: 
+If you found these codes useful for your research, please consider citing: https://arxiv.org/abs/2403.14273
 
 ## Running
 ### Configuration
