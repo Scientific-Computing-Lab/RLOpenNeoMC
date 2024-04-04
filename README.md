@@ -9,7 +9,11 @@ The fitness landscape is not trivial,their is a local minimum and a deep and ste
 Therefore, reinforce algorithm are more adapted in this case.
  
 ![](images/opt_flow.PNG)
- 
+
+## Slab Geometry
+ ![](images/slab.PNG)
+Top view of the system: the colors pink, yellow, blue, and green stand for enriched
+uranium, aluminum, water, and cadmium, respectively. The fuel and water density may vary.
 # Instructions
 ## Requirments
 First, clone the RLOpenNeoMC code provided here.
@@ -62,10 +66,11 @@ To plot the best fit in each iteration make sure to set the correct results path
 python read_and_plot_fitness_PPOES_JAYA.py
 ```
 ## Results
-'last_pop':            var1       var2   fitness
-indv1  2.895537  24.910865  1.001707
-indv2  2.918418  24.836727  1.001500
-indv3  2.925460  24.995064  0.998605
-indv4  2.950633  25.027720  1.000753}
+At the end of the simulation the best result and the rerunning time is printed in the terminal:
+
+*JAYA Results*
+
+x: [2.92546023, 24.9950639]
+y: 0.9986045239378821
 running time:
- 3429.971603155136
+3418.400379896164
