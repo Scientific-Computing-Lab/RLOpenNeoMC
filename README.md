@@ -15,7 +15,7 @@ Therefore, reinforce algorithm are more adapted in this case.
 Top view of the system: the colors pink, yellow, blue, and green stand for enriched
 uranium, aluminum, water, and cadmium, respectively. The fuel and water density may vary.
 # Instructions
-## Requirments
+## Requirements
 First, clone the RLOpenNeoMC code provided here.
 ```
 clone https://github.com/Scientific-Computing-Lab-NRCN/RLOpenNeoMC.git
